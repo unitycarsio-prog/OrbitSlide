@@ -237,16 +237,17 @@ function App() {
   // Appearance State
   const [currentTheme, setCurrentTheme] = useState<Theme>(THEME_CATEGORIES[0].items[0]);
   
-  // Animation State
-  const [animType, setAnimType] = useState('animate__fadeInUp');
-  const [animSpeed, setAnimSpeed] = useState('');
-  
   // Presentation State
   const [isPlaying, setIsPlaying] = useState(false); // Controls Fullscreen Presentation Mode
   const [isAutoPlay, setIsAutoPlay] = useState(false); // Controls Auto Advance logic
   const [slideDuration, setSlideDuration] = useState(5000);
   
-  // Derived animation class
+  // Helper to get current slide data safely
+  const currentSlide = generatedSlides ? generatedSlides[currentSlideIndex] : null;
+  
+  // Derived animation class from the current slide, or default
+  const animType = currentSlide?.animationType || 'animate__fadeInUp';
+  const animSpeed = currentSlide?.animationSpeed || '';
   const currentAnimationClass = `animate__animated ${animType} ${animSpeed}`;
 
   // UI State
@@ -444,6 +445,14 @@ function App() {
     setGeneratedSlides(newSlides);
   };
 
+  const updateCurrentSlideAnimation = (type?: string, speed?: string) => {
+    if (!currentSlide) return;
+    const updated = { ...currentSlide };
+    if (type !== undefined) updated.animationType = type;
+    if (speed !== undefined) updated.animationSpeed = speed;
+    updateCurrentSlide(updated);
+  }
+
   const handleInsertMediaUrl = () => {
     if (!generatedSlides || !mediaUrl) return;
     updateCurrentSlide({
@@ -484,18 +493,12 @@ function App() {
   };
 
   const handleExportPDF = async () => {
-    // Finds the current slide container
-    // We need to capture the slide *content* without scaling issues
     const element = document.querySelector('.slide-container-export') as HTMLElement;
     if (!element) return;
 
     try {
-      // Temporarily remove scale transform for capture if needed, 
-      // but html2canvas usually respects the visual.
-      // Better strategy: Clone the node, set it to fixed 1280x720 offscreen, capture that.
-      
       const canvas = await html2canvas(element, {
-        scale: 2, // Higher quality
+        scale: 2, 
         useCORS: true,
         backgroundColor: null
       });
@@ -693,7 +696,7 @@ function App() {
                                {ANIMATION_SPEEDS.map(s => (
                                  <button 
                                    key={s.id}
-                                   onClick={() => setAnimSpeed(s.id)}
+                                   onClick={() => updateCurrentSlideAnimation(undefined, s.id)}
                                    className={`flex-1 min-w-[30%] py-1.5 text-[10px] font-medium rounded border transition-all ${animSpeed === s.id ? 'bg-blue-600 border-blue-500 text-white' : 'bg-transparent border-white/10 text-slate-400 hover:bg-white/5'}`}
                                  >
                                    {s.label}
@@ -709,7 +712,7 @@ function App() {
                                {cat.items.map(t => (
                                  <button
                                    key={t.id}
-                                   onClick={() => setAnimType(t.id)}
+                                   onClick={() => updateCurrentSlideAnimation(t.id)}
                                    className={`w-full px-3 py-2.5 rounded-lg text-xs text-left transition-all flex items-center justify-between group ${animType === t.id ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5 border border-transparent'}`}
                                  >
                                    {t.label}
@@ -733,7 +736,7 @@ function App() {
                                {cat.items.map(t => (
                                  <button
                                    key={t.id}
-                                   onClick={() => setAnimType(t.id)}
+                                   onClick={() => updateCurrentSlideAnimation(t.id)}
                                    className={`px-2 py-2 rounded text-[10px] font-medium text-center border transition-all truncate ${animType === t.id ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20 hover:text-white'}`}
                                    title={t.label}
                                  >
@@ -778,13 +781,15 @@ function App() {
                   >
                      {/* Add class for export targeting */}
                      <div key={`${currentSlideIndex}-${currentAnimationClass}`} className="w-full h-full slide-container-export">
-                        <SlideRenderer 
-                          slide={generatedSlides[currentSlideIndex]} 
-                          theme={currentTheme} 
-                          animationClass={currentAnimationClass}
-                          onUpdate={updateCurrentSlide}
-                          isEditing={!isPlaying} // Disable editing in presentation mode
-                        />
+                        {currentSlide && (
+                          <SlideRenderer 
+                            slide={currentSlide} 
+                            theme={currentTheme} 
+                            animationClass={currentAnimationClass}
+                            onUpdate={updateCurrentSlide}
+                            isEditing={!isPlaying} // Disable editing in presentation mode
+                          />
+                        )}
                      </div>
                   </div>
                </div>

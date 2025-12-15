@@ -19,6 +19,9 @@ export interface SlideData {
   imageKeyword?: string; 
   customImage?: string; // URL for inserted media
   notes?: string;
+  // Per-slide Animation settings
+  animationType?: string;
+  animationSpeed?: string;
 }
 
 export interface Presentation {
