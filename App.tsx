@@ -294,6 +294,9 @@ function App() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
+  // Modal State
+  const [activeLegalModal, setActiveLegalModal] = useState<'about' | 'privacy' | 'terms' | null>(null);
+
   // Scaling State
   const canvasRef = useRef<HTMLDivElement>(null);
   const appContainerRef = useRef<HTMLDivElement>(null); // Ref for Fullscreen
@@ -1186,13 +1189,96 @@ function App() {
                 <span className="text-xl font-black tracking-widest text-white">NEXZI</span>
             </div>
             <div className="flex justify-center gap-6 mb-8 text-sm text-slate-500">
-               <a href="#" className="hover:text-white transition-colors">Privacy</a>
-               <a href="#" className="hover:text-white transition-colors">Terms</a>
-               <a href="#" className="hover:text-white transition-colors">Contact</a>
+               <button onClick={() => setActiveLegalModal('about')} className="hover:text-white transition-colors">About Us</button>
+               <button onClick={() => setActiveLegalModal('privacy')} className="hover:text-white transition-colors">Privacy Policy</button>
+               <button onClick={() => setActiveLegalModal('terms')} className="hover:text-white transition-colors">Terms of Use</button>
             </div>
-            <p className="text-xs text-slate-600">© 2024 OrbitSlide AI. All rights reserved.</p>
+            <p className="text-xs text-slate-600">Nexzi made</p>
          </footer>
       </div>
+
+      {/* Legal Modals Overlay */}
+      {activeLegalModal && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in"
+          onClick={() => setActiveLegalModal(null)}
+        >
+            <div 
+              className="bg-[#0F172A] border border-white/10 rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl animate-bounce-in relative"
+              onClick={e => e.stopPropagation()}
+            >
+               <button onClick={() => setActiveLegalModal(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
+               
+               <div className="p-8 overflow-y-auto custom-scrollbar">
+                  {activeLegalModal === 'about' && (
+                    <div className="space-y-6">
+                      <h2 className="text-3xl font-bold text-white">About Us</h2>
+                      <div className="h-1 w-20 bg-blue-500 rounded-full"></div>
+                      <p className="text-slate-300 leading-relaxed">
+                        OrbitSlide AI is a project by <strong className="text-blue-400">Nexzi</strong>, a creative technology studio dedicated to exploring the boundaries of generative AI and user interface design.
+                      </p>
+                      <p className="text-slate-300 leading-relaxed">
+                        Our mission is to build tools that amplify human creativity rather than replace it. We combine cutting-edge Large Language Models with intuitive, animation-rich interfaces to solve everyday productivity challenges.
+                      </p>
+                    </div>
+                  )}
+
+                  {activeLegalModal === 'privacy' && (
+                    <div className="space-y-6">
+                      <h2 className="text-3xl font-bold text-white">Privacy Policy</h2>
+                      <div className="h-1 w-20 bg-blue-500 rounded-full"></div>
+                      <p className="text-xs text-slate-500 uppercase tracking-widest">Effective Date: October 26, 2023</p>
+                      
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-semibold text-white">1. Information We Collect</h3>
+                        <p className="text-slate-300 text-sm leading-relaxed">We collect information you provide directly to us when using OrbitSlide AI, specifically the text prompts you enter for presentation generation. We do not require account registration for the free tier.</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-semibold text-white">2. How We Use Your Information</h3>
+                        <ul className="list-disc pl-5 text-slate-300 text-sm leading-relaxed space-y-2">
+                          <li>To generate presentation content using Google's Gemini API.</li>
+                          <li>To improve the performance and responsiveness of our application.</li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-semibold text-white">3. Data Storage</h3>
+                        <p className="text-slate-300 text-sm leading-relaxed">OrbitSlide AI operates primarily as a client-side application. Your presentation data is generated and stored temporarily in your browser's local memory. We do not persist your presentations on our servers after your session ends.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeLegalModal === 'terms' && (
+                    <div className="space-y-6">
+                       <h2 className="text-3xl font-bold text-white">Terms of Use</h2>
+                       <div className="h-1 w-20 bg-blue-500 rounded-full"></div>
+                       
+                       <div className="space-y-4">
+                          <h3 className="text-xl font-semibold text-white">1. Acceptance of Terms</h3>
+                          <p className="text-slate-300 text-sm leading-relaxed">By accessing and using OrbitSlide AI, you accept and agree to be bound by the terms and provision of this agreement.</p>
+                       </div>
+
+                       <div className="space-y-4">
+                          <h3 className="text-xl font-semibold text-white">2. Use License</h3>
+                          <p className="text-slate-300 text-sm leading-relaxed">Permission is granted to temporarily download one copy of the materials (information or software) on OrbitSlide AI's website for personal, non-commercial transitory viewing only.</p>
+                       </div>
+
+                       <div className="space-y-4">
+                          <h3 className="text-xl font-semibold text-white">3. AI Generated Content</h3>
+                          <p className="text-slate-300 text-sm leading-relaxed">Content generated by OrbitSlide AI is provided "as is". Nexzi makes no warranties, expressed or implied, regarding the accuracy or reliability of the AI-generated content. Users are responsible for verifying facts and figures.</p>
+                       </div>
+
+                       <div className="space-y-4">
+                          <h3 className="text-xl font-semibold text-white">4. Disclaimer</h3>
+                          <p className="text-slate-300 text-sm leading-relaxed">The materials on OrbitSlide AI's website are provided on an 'as is' basis. Nexzi makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability.</p>
+                       </div>
+                    </div>
+                  )}
+               </div>
+            </div>
+        </div>
+      )}
       
       {/* Background Orbs */}
       <div className="absolute top-1/2 left-[15%] w-[30vw] h-[30vw] border border-blue-500/10 rounded-full -translate-y-1/2 pointer-events-none"></div>
