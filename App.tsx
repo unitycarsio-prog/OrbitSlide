@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import StarBackground from './components/StarBackground';
-import { Sparkles, ArrowRight, ArrowLeft, X, ChevronLeft, ChevronRight, Download, Play, Palette, Image as ImageIcon, Video, Zap, Plus, Settings, MonitorPlay, Upload, Globe, Pause, RefreshCw, Type, Move, Layers, Sidebar, FileText, Menu, Grid, LayoutGrid, Trash2, Copy, MousePointer2, Clock, Maximize2, Minimize2, FileJson, FileDown } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, X, ChevronLeft, ChevronRight, Download, Play, Palette, Image as ImageIcon, Video, Zap, Plus, Settings, MonitorPlay, Upload, Globe, Pause, RefreshCw, Type, Move, Layers, Sidebar, FileText, Menu, Grid, LayoutGrid, Trash2, Copy, MousePointer2, Clock, Maximize2, Minimize2, FileJson, FileDown, CircleHelp, Youtube, BookOpen, Check, Edit3, ChevronDown, ChevronUp, Lock, Users, Smartphone, PenTool, Database } from 'lucide-react';
 import { generatePresentationContent } from './services/geminiService';
 import { SlideData, Theme, TransitionType, SlideLayout } from './types';
+import { getPreMadeSlideDeck } from './data/templates';
 import SlideRenderer from './components/SlideRenderer';
 import ChatAssistant from './components/ChatAssistant';
 import html2canvas from 'html2canvas';
@@ -220,10 +221,44 @@ const AUTO_PLAY_DURATIONS = [
   { value: 30000, label: '30s' },
 ];
 
+const SAMPLE_TOPICS = [
+  "Future of AI", "Cybersecurity Basics", "Sustainable Energy", "Digital Marketing",
+  "Space Exploration", "Mental Health", "Blockchain 101", "Renewable Power",
+  "Negotiation Skills", "Modern Architecture", "Color Psychology", "Remote Work",
+  "Quantum Computing", "Climate Change", "Social Media Trends", "E-commerce Growth",
+  "Future of Education", "Robotics", "The Metaverse", "Personal Finance",
+  "Leadership Skills", "Public Speaking", "Nutrition Basics", "Internet History",
+  "Mobile App Dev", "Data Science", "Graphic Design", "Content Creation",
+  "Agile Management", "Startup Pitch", "Crisis Management", "Employee Engagement",
+  "Diversity & Inclusion", "Gig Economy", "Smart Homes", "Electric Vehicles",
+  "Ocean Conservation", "Wildlife Photo", "Minimalism", "Yoga for Beginners",
+  "Meditation", "Time Management", "Productivity Tools", "Cloud Computing",
+  "IoT Basics", "5G Technology", "Augmented Reality", "Virtual Reality",
+  "Game Design", "Machine Learning"
+];
+
+const FAQS = [
+  { q: "Is OrbitSlide AI free to use?", a: "Yes, OrbitSlide AI provides a free tier that allows you to generate and export presentations. Premium features may be added in the future." },
+  { q: "Can I export my slides?", a: "Absolutely! You can export your presentation as a JSON file to save your project state or as a PDF for easy sharing and printing." },
+  { q: "How does the AI work?", a: "We use advanced large language models (Google Gemini) to understand your topic and structure a coherent narrative, automatically selecting appropriate layouts and visuals." },
+  { q: "Can I customize the generated slides?", a: "Yes. After generation, you can edit text, change themes, apply animations, swap images, and even use our Chat Assistant to make complex updates with natural language." },
+  { q: "Is my data secure?", a: "Your privacy is our priority. We do not store your presentation data on our servers after your session ends. All generation happens in real-time in your browser session." },
+  { q: "Can I collaborate with my team?", a: "Real-time collaboration is on our roadmap. Currently, you can share the project via the JSON export feature and have others import it." },
+  { q: "Does it work on mobile?", a: "Yes, OrbitSlide is fully responsive and works on mobile devices, though for the best editing experience, we recommend a tablet or desktop." },
+  { q: "Can I upload my own fonts?", a: "Currently we provide a curated list of professional Google Fonts. Custom font uploads are coming in the Pro version." },
+  { q: "Do you support PowerPoint export?", a: "Currently, we support PDF and JSON export. PowerPoint (.pptx) export is on our roadmap for future updates." },
+  { q: "What happens if I lose internet connection?", a: "The app requires internet for the initial AI generation. Once generated, editing text is local, but fetching new images or AI updates requires a connection." },
+  { q: "How many slides can I generate?", a: "By default, the AI generates between 6 to 10 slides depending on the complexity of the topic. You can manually add more slides after generation." },
+  { q: "Are the images copyright free?", a: "We use placeholders from Unsplash/Picsum which are generally free for use, but we recommend double-checking licensing for commercial projects or uploading your own images." },
+  { q: "Can I save my templates?", a: "You can save your work as a JSON file which acts as a template. In the future, we will support cloud saving for user accounts." },
+  { q: "What languages are supported?", a: "OrbitSlide supports input in almost any language supported by Google Gemini. The output will generally match the language of your prompt." },
+  { q: "How do I report a bug?", a: "You can reach out to our support team via the contact link in the footer. We appreciate all feedback to improve the platform." }
+];
+
 const SUGGESTIONS = [
   "Future of AI",
-  "Cybersecurity",
   "Sustainable Energy",
+  "Space Exploration",
   "Digital Marketing"
 ];
 
@@ -257,6 +292,7 @@ function App() {
   const [showChat, setShowChat] = useState(false);
   const [showMediaInput, setShowMediaInput] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
   // Scaling State
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -391,12 +427,13 @@ function App() {
   }, [isPlaying, generatedSlides]);
 
 
-  const handleGenerate = async () => {
-    if (!query.trim()) return;
+  const handleGenerate = async (topic?: string) => {
+    const topicToUse = topic || query;
+    if (!topicToUse.trim()) return;
     setIsGenerating(true);
     setError(null);
     try {
-      const slides = await generatePresentationContent(query);
+      const slides = await generatePresentationContent(topicToUse);
       setGeneratedSlides(slides);
       setCurrentSlideIndex(0);
       setActiveTool('none'); // Start with canvas focused
@@ -406,6 +443,15 @@ function App() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // NEW: Loads pre-made templates instantly
+  const handleLoadSample = (topic: string) => {
+    const slides = getPreMadeSlideDeck(topic);
+    setGeneratedSlides(slides);
+    setCurrentSlideIndex(0);
+    setActiveTool('none');
+    if (window.innerWidth >= 1024) setShowRightSidebar(true);
   };
 
   const handleStartFromScratch = () => {
@@ -981,65 +1027,174 @@ function App() {
     );
   }
 
-  // --- VIEW: HOME ---
+  // --- VIEW: HOME (SCROLLABLE) ---
   return (
-    <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center">
+    <div className="relative min-h-screen w-full text-white selection:bg-blue-500/30">
       <StarBackground />
-      {/* (Home Screen Content) */}
-      <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10 flex flex-col">
-        <span className="text-[8px] md:text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mb-1">Presented by</span>
-        <div className="flex items-center gap-2">
-            <div className="h-4 w-1 md:h-6 bg-blue-500 rounded-full"></div>
-            <span className="text-lg md:text-2xl font-black tracking-widest text-white">NEXZI</span>
-        </div>
-      </div>
+      
+      {/* Scrollable Container */}
+      <div className="relative z-10 w-full h-screen overflow-y-auto overflow-x-hidden custom-scrollbar">
+         
+         {/* Hero Section */}
+         <section className="min-h-screen flex flex-col items-center justify-center px-4 relative">
+             <div className="absolute top-4 left-4 md:top-8 md:left-8 flex flex-col">
+              <span className="text-[8px] md:text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mb-1">Presented by</span>
+              <div className="flex items-center gap-2">
+                  <div className="h-4 w-1 md:h-6 bg-blue-500 rounded-full"></div>
+                  <span className="text-lg md:text-2xl font-black tracking-widest text-white">NEXZI</span>
+              </div>
+            </div>
 
-      <div className="relative z-10 flex flex-col items-center max-w-4xl w-full px-4 text-center">
-        <div className="mb-4 md:mb-8 inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full border border-blue-500/30 bg-blue-950/30 backdrop-blur-md shadow-[0_0_20px_rgba(59,130,246,0.3)] animate-float">
-          <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
-          <span className="text-xs md:text-sm font-semibold text-blue-100">OrbitSlide AI 3.0</span>
-        </div>
-        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tight leading-[1.1] mb-2">Roar into</h1>
-        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tight leading-[1.1] mb-6 md:mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 glow-text">Greatness.</h1>
-        <p className="max-w-2xl text-sm md:text-xl text-slate-300 font-light leading-relaxed mb-8 md:mb-12 opacity-90 px-4">Unleash the power of AI to create professional slide decks instantly.</p>
+            <div className="flex flex-col items-center max-w-4xl w-full text-center mt-20 md:mt-0">
+              <div className="mb-4 md:mb-8 inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full border border-blue-500/30 bg-blue-950/30 backdrop-blur-md shadow-[0_0_20px_rgba(59,130,246,0.3)] animate-float">
+                <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
+                <span className="text-xs md:text-sm font-semibold text-blue-100">OrbitSlide AI 3.0</span>
+              </div>
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tight leading-[1.1] mb-2">Roar into</h1>
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tight leading-[1.1] mb-6 md:mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 glow-text">Greatness.</h1>
+              <p className="max-w-2xl text-sm md:text-xl text-slate-300 font-light leading-relaxed mb-8 md:mb-12 opacity-90 px-4">Unleash the power of AI to create professional slide decks instantly.</p>
 
-        <div className="w-full max-w-2xl relative group px-4">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl opacity-40 blur-lg group-hover:opacity-60 transition duration-500"></div>
-          <div className="relative flex items-center bg-[#0B1221] border border-blue-500/30 rounded-xl p-2 shadow-2xl">
-            <div className="pl-2 md:pl-4 pr-2 md:pr-3 text-slate-400"><Sparkles className="w-4 h-4 md:w-5 md:h-5 text-blue-400" /></div>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleInputKeyDown}
-              disabled={isGenerating}
-              placeholder="What do you want to create?"
-              className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none text-sm md:text-lg py-2 md:py-3 font-medium"
-            />
-            <button 
-              onClick={handleGenerate}
-              disabled={!query.trim() || isGenerating}
-              className={`p-2 md:p-3 rounded-lg flex items-center justify-center transition-all duration-300 ${query.trim() && !isGenerating ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/50' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
-            >
-              {isGenerating ? <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
-            </button>
-          </div>
-        </div>
-        
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-2 md:gap-3 text-xs md:text-sm text-slate-400">
-          <button onClick={handleStartFromScratch} className="flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity hover:text-blue-400">
-            <div className="border border-slate-600 rounded px-1.5 py-0.5 text-[10px]">New</div>
-            Start from Scratch
-          </button>
-          <span className="mx-1 md:mx-2 text-slate-700">•</span>
-          <span className="opacity-70">Try:</span>
-          {SUGGESTIONS.map((s, i) => (
-            <button key={i} onClick={() => setQuery(s)} className="hover:text-blue-400 hover:underline transition-colors hidden sm:inline-block">{s}</button>
-          ))}
-          <button onClick={() => setQuery(SUGGESTIONS[0])} className="hover:text-blue-400 hover:underline transition-colors sm:hidden">Example Topic</button>
-        </div>
-        {error && <div className="mt-6 bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg flex items-center gap-2 animate-pulse text-sm"><X size={16} /> {error}</div>}
+              <div className="w-full max-w-2xl relative group px-4">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl opacity-40 blur-lg group-hover:opacity-60 transition duration-500"></div>
+                <div className="relative flex items-center bg-[#0B1221] border border-blue-500/30 rounded-xl p-2 shadow-2xl">
+                  <div className="pl-2 md:pl-4 pr-2 md:pr-3 text-slate-400"><Sparkles className="w-4 h-4 md:w-5 md:h-5 text-blue-400" /></div>
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    disabled={isGenerating}
+                    placeholder="What do you want to create?"
+                    className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none text-sm md:text-lg py-2 md:py-3 font-medium"
+                  />
+                  <button 
+                    onClick={() => handleGenerate()}
+                    disabled={!query.trim() || isGenerating}
+                    className={`p-2 md:p-3 rounded-lg flex items-center justify-center transition-all duration-300 ${query.trim() && !isGenerating ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/50' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+                  >
+                    {isGenerating ? <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-2 md:gap-3 text-xs md:text-sm text-slate-400">
+                <button onClick={handleStartFromScratch} className="flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity hover:text-blue-400">
+                  <div className="border border-slate-600 rounded px-1.5 py-0.5 text-[10px]">New</div>
+                  Start from Scratch
+                </button>
+                <span className="mx-1 md:mx-2 text-slate-700">•</span>
+                <span className="opacity-70">Try:</span>
+                {SUGGESTIONS.map((s, i) => (
+                  <button key={i} onClick={() => setQuery(s)} className="hover:text-blue-400 hover:underline transition-colors hidden sm:inline-block">{s}</button>
+                ))}
+              </div>
+              {error && <div className="mt-6 bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg flex items-center gap-2 animate-pulse text-sm"><X size={16} /> {error}</div>}
+            </div>
+
+            <div className="absolute bottom-10 animate-bounce text-slate-500">
+              <ChevronDown size={32} />
+            </div>
+         </section>
+
+         {/* How It Works Section */}
+         <section className="py-24 px-4 max-w-6xl mx-auto border-t border-white/5 bg-[#030712]/50 backdrop-blur-sm">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-16"><span className="text-blue-500">How</span> It Works</h2>
+            <div className="grid md:grid-cols-4 gap-8">
+               {[
+                 { icon: <Type size={32} />, title: "1. Enter Topic", desc: "Type any subject, or paste your rough notes." },
+                 { icon: <Zap size={32} />, title: "2. AI Generate", desc: "Our engine structures the narrative & designs slides." },
+                 { icon: <Edit3 size={32} />, title: "3. Customize", desc: "Tweak layouts, themes, and content instantly." },
+                 { icon: <Download size={32} />, title: "4. Export", desc: "Download as PDF or JSON for your meeting." }
+               ].map((step, i) => (
+                 <div key={i} className="flex flex-col items-center text-center group">
+                    <div className="w-20 h-20 rounded-2xl bg-[#0B1221] border border-white/10 flex items-center justify-center text-blue-400 mb-6 shadow-lg group-hover:scale-110 group-hover:border-blue-500/50 transition-all duration-300">
+                      {step.icon}
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">{step.title}</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">{step.desc}</p>
+                 </div>
+               ))}
+            </div>
+         </section>
+
+         {/* 50 Sample Presentations */}
+         <section className="py-24 px-4 bg-gradient-to-b from-[#0B1221] to-[#030712] border-y border-white/5">
+            <div className="max-w-7xl mx-auto">
+               <div className="flex flex-col md:flex-row items-center justify-between mb-12">
+                 <div>
+                   <h2 className="text-3xl md:text-4xl font-bold mb-2">Explore <span className="text-blue-400">50+ Samples</span></h2>
+                   <p className="text-slate-400">Click any topic to <b>instantly load</b> a presentation.</p>
+                 </div>
+                 {/* Decorative element */}
+                 <div className="hidden md:flex gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse delay-75"></div>
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse delay-150"></div>
+                 </div>
+               </div>
+               
+               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {SAMPLE_TOPICS.map((topic, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => handleLoadSample(topic)}
+                      className="group relative p-4 rounded-xl bg-[#0F172A] border border-white/5 hover:border-blue-500/50 text-left transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-900/10 overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/0 to-blue-600/0 group-hover:to-blue-600/10 transition-all"></div>
+                      <div className="flex justify-between items-start mb-3">
+                         <div className="w-8 h-8 rounded-lg bg-[#1E293B] flex items-center justify-center text-slate-400 group-hover:text-blue-400 group-hover:scale-110 transition-all">
+                           <FileText size={16} />
+                         </div>
+                         <span className="text-[10px] text-slate-500 font-mono">#{i+1}</span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-slate-200 group-hover:text-white leading-snug line-clamp-2">{topic}</h3>
+                    </button>
+                  ))}
+               </div>
+            </div>
+         </section>
+
+         {/* FAQs Section */}
+         <section className="py-24 px-4 max-w-3xl mx-auto border-t border-white/5">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">Freqently Asked <span className="text-blue-500">Questions</span></h2>
+            <p className="text-center text-slate-400 mb-12">Everything you need to know about OrbitSlide.</p>
+            
+            <div className="space-y-4">
+              {FAQS.map((faq, i) => (
+                <div key={i} className="border border-white/10 rounded-xl bg-[#0B1221] overflow-hidden transition-all">
+                   <button 
+                     onClick={() => setFaqOpen(faqOpen === i ? null : i)}
+                     className="w-full flex items-center justify-between p-6 text-left hover:bg-white/5 transition-colors"
+                   >
+                     <span className="font-semibold text-slate-200">{faq.q}</span>
+                     {faqOpen === i ? <ChevronUp size={20} className="text-blue-400" /> : <ChevronDown size={20} className="text-slate-500" />}
+                   </button>
+                   <div 
+                     className={`px-6 text-slate-400 text-sm leading-relaxed overflow-hidden transition-all duration-300 ease-in-out ${faqOpen === i ? 'max-h-40 pb-6 opacity-100' : 'max-h-0 opacity-0'}`}
+                   >
+                     {faq.a}
+                   </div>
+                </div>
+              ))}
+            </div>
+         </section>
+
+         {/* Footer */}
+         <footer className="py-12 border-t border-white/5 bg-[#030712] text-center">
+            <div className="flex items-center justify-center gap-2 mb-6 opacity-50 grayscale hover:grayscale-0 transition-all">
+                <div className="h-6 w-1.5 bg-blue-500 rounded-full"></div>
+                <span className="text-xl font-black tracking-widest text-white">NEXZI</span>
+            </div>
+            <div className="flex justify-center gap-6 mb-8 text-sm text-slate-500">
+               <a href="#" className="hover:text-white transition-colors">Privacy</a>
+               <a href="#" className="hover:text-white transition-colors">Terms</a>
+               <a href="#" className="hover:text-white transition-colors">Contact</a>
+            </div>
+            <p className="text-xs text-slate-600">© 2024 OrbitSlide AI. All rights reserved.</p>
+         </footer>
       </div>
+      
+      {/* Background Orbs */}
       <div className="absolute top-1/2 left-[15%] w-[30vw] h-[30vw] border border-blue-500/10 rounded-full -translate-y-1/2 pointer-events-none"></div>
       <div className="absolute top-1/2 right-[15%] w-[30vw] h-[30vw] border border-blue-500/10 rounded-full -translate-y-1/2 pointer-events-none"></div>
     </div>
