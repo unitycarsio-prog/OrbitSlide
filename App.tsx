@@ -8,6 +8,7 @@ import SlideRenderer from './components/SlideRenderer';
 import ChatAssistant from './components/ChatAssistant';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import PptxGenJS from 'pptxgenjs';
 
 // --- DATA TYPES ---
 interface CategoryGroup<T> {
@@ -264,10 +265,14 @@ const SUGGESTIONS = [
 
 function App() {
   const [query, setQuery] = useState('');
+  const [format, setFormat] = useState('Standard');
+  const [style, setStyle] = useState('Storyteller'); 
+  const [customFormat, setCustomFormat] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSlides, setGeneratedSlides] = useState<SlideData[] | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
 
   // Appearance State
   const [currentTheme, setCurrentTheme] = useState<Theme>(THEME_CATEGORIES[0].items[0]);
@@ -286,7 +291,7 @@ function App() {
   const currentAnimationClass = `animate__animated ${animType} ${animSpeed}`;
 
   // UI State
-  const [activeTool, setActiveTool] = useState<'themes' | 'animations' | 'transitions' | 'settings' | 'none'>('themes');
+  const [activeTool, setActiveTool] = useState<'themes' | 'animations' | 'transitions' | 'settings' | 'layouts' | 'none'>('themes');
   const [showRightSidebar, setShowRightSidebar] = useState(true);
   
   const [showChat, setShowChat] = useState(false);
@@ -436,7 +441,8 @@ function App() {
     setIsGenerating(true);
     setError(null);
     try {
-      const slides = await generatePresentationContent(topicToUse);
+      const finalFormat = format === 'Custom' ? customFormat : format;
+      const slides = await generatePresentationContent(topicToUse, finalFormat, style);
       setGeneratedSlides(slides);
       setCurrentSlideIndex(0);
       setActiveTool('none'); // Start with canvas focused
@@ -494,6 +500,13 @@ function App() {
     setGeneratedSlides(newSlides);
   };
 
+  const deleteCurrentSlide = () => {
+    if (!generatedSlides || generatedSlides.length === 1) return;
+    const newSlides = generatedSlides.filter((_, i) => i !== currentSlideIndex);
+    setGeneratedSlides(newSlides);
+    setCurrentSlideIndex(prev => Math.max(0, prev - 1));
+  };
+
   const updateCurrentSlideAnimation = (type?: string, speed?: string) => {
     if (!currentSlide) return;
     const updated = { ...currentSlide };
@@ -538,6 +551,25 @@ function App() {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+    setShowExportMenu(false);
+  };
+
+  const handleExportPPTX = async () => {
+    if (!generatedSlides) return;
+    const pptx = new PptxGenJS();
+    
+    generatedSlides.forEach(slide => {
+      const pSlide = pptx.addSlide();
+      pSlide.addText(slide.title || 'Untitled', { x: '5%', y: '5%', fontSize: 32, bold: true, color: '363636' });
+      if (slide.subtitle) {
+          pSlide.addText(slide.subtitle, { x: '5%', y: '15%', fontSize: 20, color: '808080' });
+      }
+      slide.content.forEach((point, i) => {
+        pSlide.addText(point, { x: '5%', y: `${25 + i * 10}%`, fontSize: 18, color: '000000' });
+      });
+    });
+    
+    pptx.writeFile({ fileName: 'presentation.pptx' });
     setShowExportMenu(false);
   };
 
@@ -831,11 +863,12 @@ function App() {
                      {/* Add class for export targeting */}
                      <div key={`${currentSlideIndex}-${currentAnimationClass}`} className="w-full h-full slide-container-export">
                         {currentSlide && (
-                          <SlideRenderer 
-                            slide={currentSlide} 
-                            theme={currentTheme} 
+                          <SlideRenderer
+                            slide={currentSlide}
+                            theme={currentTheme}
                             animationClass={currentAnimationClass}
                             onUpdate={updateCurrentSlide}
+                            onDelete={deleteCurrentSlide}
                             isEditing={!isPlaying} // Disable editing in presentation mode
                           />
                         )}
@@ -947,7 +980,8 @@ function App() {
                       <Plus size={16} />
                    </button>
                 </div>
-                
+
+
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                    {generatedSlides.map((slide, idx) => (
                       <div 
@@ -1059,24 +1093,26 @@ function App() {
 
               <div className="w-full max-w-2xl relative group px-4">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl opacity-40 blur-lg group-hover:opacity-60 transition duration-500"></div>
-                <div className="relative flex items-center bg-[#0B1221] border border-blue-500/30 rounded-xl p-2 shadow-2xl">
-                  <div className="pl-2 md:pl-4 pr-2 md:pr-3 text-slate-400"><Sparkles className="w-4 h-4 md:w-5 md:h-5 text-blue-400" /></div>
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={handleInputKeyDown}
-                    disabled={isGenerating}
-                    placeholder="What do you want to create?"
-                    className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none text-sm md:text-lg py-2 md:py-3 font-medium"
-                  />
-                  <button 
-                    onClick={() => handleGenerate()}
-                    disabled={!query.trim() || isGenerating}
-                    className={`p-2 md:p-3 rounded-lg flex items-center justify-center transition-all duration-300 ${query.trim() && !isGenerating ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/50' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
-                  >
-                    {isGenerating ? <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
-                  </button>
+                <div className="relative flex flex-col items-center bg-[#0B1221] border border-blue-500/30 rounded-xl p-2 shadow-2xl">
+                  <div className="flex w-full">
+                    <div className="pl-2 md:pl-4 pr-2 md:pr-3 text-slate-400 flex items-center"><Sparkles className="w-4 h-4 md:w-5 md:h-5 text-blue-400" /></div>
+                    <input
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={handleInputKeyDown}
+                      disabled={isGenerating}
+                      placeholder="What do you want to create?"
+                      className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none text-sm md:text-lg py-2 md:py-3 font-medium"
+                    />
+                    <button 
+                      onClick={() => handleGenerate()}
+                      disabled={!query.trim() || isGenerating}
+                      className={`p-2 md:p-3 rounded-lg flex items-center justify-center transition-all duration-300 ${query.trim() && !isGenerating ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/50' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+                    >
+                      {isGenerating ? <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
               

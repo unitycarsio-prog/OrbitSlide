@@ -2,13 +2,15 @@ export enum SlideLayout {
   TITLE = 'title',
   BULLET_POINTS = 'bullet_points',
   TWO_COLUMN = 'two_column',
-  THREE_COLUMN = 'three_column', // New
+  THREE_COLUMN = 'three_column',
   QUOTE = 'quote',
   SECTION_HEADER = 'section_header',
-  BIG_NUMBER = 'big_number', // New
-  GALLERY = 'gallery', // New
-  COMPARISON = 'comparison', // New
-  CODE_BLOCK = 'code_block' // New
+  BIG_NUMBER = 'big_number',
+  GALLERY = 'gallery',
+  COMPARISON = 'comparison',
+  CODE_BLOCK = 'code_block',
+  IMAGE_LEFT_TEXT_RIGHT = 'image_left_text_right',
+  IMAGE_CENTERED = 'image_centered',
 }
 
 export interface SlideData {

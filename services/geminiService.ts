@@ -20,18 +20,7 @@ const slideSchema = {
     },
     layout: { 
       type: Type.STRING, 
-      enum: [
-        "title", 
-        "bullet_points", 
-        "two_column", 
-        "three_column",
-        "quote", 
-        "section_header",
-        "big_number",
-        "gallery",
-        "comparison",
-        "code_block"
-      ] 
+      enum: Object.values(SlideLayout)
     },
     imageKeyword: { type: Type.STRING },
     notes: { type: Type.STRING }
@@ -39,19 +28,28 @@ const slideSchema = {
   required: ["title", "content", "layout"]
 };
 
-export const generatePresentationContent = async (topic: string): Promise<SlideData[]> => {
+export const generatePresentationContent = async (topic: string, format: string = "Standard Presentation", style: string = "Storyteller"): Promise<SlideData[]> => {
   const ai = getClient();
   
-  const prompt = `Create a professional presentation about: "${topic}". 
-  Generate 6 to 8 slides. 
-  Ensure variety in layouts (use comparison, big_number, or three_column where appropriate). 
-  For 'imageKeyword', provide a short, descriptive search term for a stock photo.`;
+  const prompt = `Create a professional, high-impact presentation about: "${topic}".
+  The presentation format should be: "${format}".
+  The presentation style should be: "${style}".
+
+  Instructions:
+  1. Act as a master presentation designer and copywriter.
+  2. Structure the content logically, ensuring a clear beginning, middle, and end.
+  3. Create content that is concise, punchy, and highly informative. Avoid fluff.
+  4. Ensure every slide deck feels uniquely crafted, using a wide variety of slide layouts (e.g., Title, Bullet Points, Two Columns, Three Columns, Quote, Section Header, Big Number, Gallery, Comparison, Code Block, Image Left Text Right, Image Centered).
+  5. Dynamically choose layouts based on the complexity and type of content to maximize engagement and clarity.
+  6. Generate between 6 to 10 slides.
+  7. For 'imageKeyword', provide a high-quality, professional, and specific search term (e.g., "minimalist office desk", "tech innovation concept") for a stock photo that aligns perfectly with the slide's content.
+  8. IMPORTANT: Each slide should have a title, a brief subtitle (optional), and 3-5 concise bullet points (content). Assign a layout type that best fits the content density. Avoid using the same layout for consecutive slides.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.0-flash", // Using a better model if available or stick to 2.5
     contents: prompt,
     config: {
-      systemInstruction: "You are a world-class presentation designer. You create engaging, structured slide decks with varied visual templates. IMPORTANT: Output CLEAN PLAIN TEXT for titles and content. DO NOT use Markdown formatting (like **bold**, *italics*, # headers, or bullets) inside the JSON string values. Just plain text.",
+      systemInstruction: "You are a top-tier presentation designer. You ALWAYS prioritize clarity, hierarchy, and design impact. IMPORTANT: Output CLEAN PLAIN TEXT for titles, subtitles, and content array items (bullets). DO NOT use Markdown formatting (e.g., *bold*, #), tags, or bullets in the strings. Content items should be simple string items in the array.",
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.ARRAY,

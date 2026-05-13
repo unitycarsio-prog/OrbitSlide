@@ -1,12 +1,14 @@
 import React, { useRef, useLayoutEffect } from 'react';
 import { SlideData, SlideLayout, Theme } from '../types';
-import { Quote, Code, ArrowRightLeft, Image as ImageIcon } from 'lucide-react';
+import { Quote, Code, ArrowRightLeft, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { fetchPexelsImage } from '../services/pexelsService';
 
 interface SlideRendererProps {
   slide: SlideData;
   theme: Theme;
   animationClass: string; // Now passing specific composed class string
   onUpdate: (updatedSlide: SlideData) => void;
+  onDelete?: () => void;
   isEditing?: boolean;
 }
 
@@ -30,12 +32,27 @@ const AutoTextarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> 
   return <textarea ref={ref} rows={1} {...props} />;
 };
 
-const SlideRenderer: React.FC<SlideRendererProps> = ({ slide, theme, animationClass, onUpdate, isEditing = true }) => {
-  const imageUrl = slide.customImage 
-    ? slide.customImage
-    : slide.imageKeyword 
-      ? `https://picsum.photos/seed/${encodeURIComponent(slide.imageKeyword)}/1200/800` 
-      : 'https://picsum.photos/seed/abstract/1200/800';
+const SlideRenderer: React.FC<SlideRendererProps> = ({ slide, theme, animationClass, onUpdate, onDelete, isEditing = true }) => {
+  const [imageUrl, setImageUrl] = React.useState<string>('https://picsum.photos/seed/placeholder/1200/800');
+
+  React.useEffect(() => {
+    if (slide.customImage) {
+      setImageUrl(slide.customImage);
+      return;
+    }
+    
+    if (slide.imageKeyword) {
+      fetchPexelsImage(slide.imageKeyword).then(url => {
+        if (url) {
+          setImageUrl(url);
+        } else {
+          setImageUrl(`https://picsum.photos/seed/${encodeURIComponent(slide.imageKeyword!)}/1200/800`);
+        }
+      });
+    } else {
+      setImageUrl('https://picsum.photos/seed/abstract/1200/800');
+    }
+  }, [slide.customImage, slide.imageKeyword]);
 
   const containerStyle = { 
     background: theme.bgGradient,
@@ -304,6 +321,70 @@ const SlideRenderer: React.FC<SlideRendererProps> = ({ slide, theme, animationCl
           </div>
         );
 
+      case SlideLayout.IMAGE_LEFT_TEXT_RIGHT:
+        return (
+          <div className={`flex h-full ${animationClass}`}>
+            <div className="w-1/2 p-6 flex items-center justify-center">
+              <div className="w-full h-full rounded-2xl overflow-hidden shadow-2xl relative group">
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors z-10" />
+                <img 
+                  src={imageUrl} 
+                  alt="Slide visual" 
+                  className="object-cover w-full h-full transform transition-transform duration-1000 hover:scale-105" 
+                />
+              </div>
+            </div>
+            <div className="w-1/2 p-14 flex flex-col justify-center">
+              <AutoTextarea 
+                 value={cleanText(slide.title)} 
+                 onChange={(e) => updateTitle(e.target.value)}
+                 className="editable-input text-5xl font-bold mb-10 leading-tight bg-transparent" 
+                 style={textPrimary}
+              />
+              <div className="space-y-6">
+                {slide.content.map((point, i) => (
+                  <AutoTextarea 
+                    key={i}
+                    value={cleanText(point)}
+                    onChange={(e) => updateContent(i, e.target.value)}
+                    className="editable-input text-xl leading-relaxed opacity-90 bg-transparent" 
+                    style={textSecondary}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case SlideLayout.IMAGE_CENTERED:
+        return (
+          <div className={`flex flex-col h-full ${animationClass}`}>
+            <div className="h-2/3 p-4 flex items-center justify-center">
+              <div className="w-full h-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl relative group">
+                <img 
+                  src={imageUrl} 
+                  alt="Center visual" 
+                  className="object-cover w-full h-full transform transition-transform duration-1000 hover:scale-105" 
+                />
+              </div>
+            </div>
+            <div className="h-1/3 p-10 flex flex-col items-center justify-center text-center">
+              <AutoTextarea 
+                 value={cleanText(slide.title)} 
+                 onChange={(e) => updateTitle(e.target.value)}
+                 className="editable-input text-4xl font-bold mb-4 bg-transparent text-center" 
+                 style={textPrimary}
+              />
+              <AutoTextarea 
+                 value={cleanText(slide.subtitle)} 
+                 onChange={(e) => updateSubtitle(e.target.value)}
+                 className="editable-input text-xl opacity-80 bg-transparent text-center" 
+                 style={textSecondary}
+              />
+            </div>
+          </div>
+        );
+
       case SlideLayout.CODE_BLOCK:
          return (
            <div className={`flex flex-col h-full p-12 ${animationClass}`}>
@@ -332,7 +413,6 @@ const SlideRenderer: React.FC<SlideRendererProps> = ({ slide, theme, animationCl
          );
 
       case SlideLayout.BULLET_POINTS:
-      default:
         return (
           <div className={`p-14 h-full flex flex-col ${animationClass}`}>
             <div className="mb-10 border-b pb-6" style={{ borderColor: theme.accentColor }}>
@@ -369,21 +449,38 @@ const SlideRenderer: React.FC<SlideRendererProps> = ({ slide, theme, animationCl
             </div>
           </div>
         );
+
+      default:
+        return (
+          <div className={`p-10 h-full flex flex-col items-center justify-center text-center ${animationClass}`}>
+            <h2 className="text-4xl font-bold mb-4" style={textPrimary}>{slide.title || 'Layout Previews'}</h2>
+            <p className="text-xl opacity-70" style={textSecondary}>New layout: {slide.layout}</p>
+            <div className="mt-8 p-4 border border-dashed rounded-lg" style={{ borderColor: theme.accentColor }}>
+               <span className="text-sm font-mono" style={{ color: theme.accentColor }}>[Visual placeholder for {slide.layout}]</span>
+            </div>
+          </div>
+        );
     }
   };
 
   return (
     <div 
-      className="w-full h-full rounded-xl overflow-hidden shadow-2xl relative transition-all duration-500"
-      style={containerStyle}
+      className="w-full h-full rounded-2xl overflow-hidden shadow-2xl relative transition-all duration-500 border border-white/10"
+      style={{...containerStyle, boxShadow: '0 20px 50px rgba(0,0,0,0.5)'}}
     >
-      {/* Background Texture */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `radial-gradient(${theme.textSecondary} 1px, transparent 1px)`, backgroundSize: '24px 24px' }}></div>
-      {/* Background Blobs */}
-      <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-[100px] opacity-20 animate-pulse" style={{ backgroundColor: theme.accentColor }} />
-      <div className="absolute -bottom-32 -left-32 w-[30rem] h-[30rem] rounded-full blur-[120px] opacity-10" style={{ backgroundColor: theme.textPrimary }} />
+      {/* Background Texture with improved opacity */}
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: `radial-gradient(${theme.textSecondary} 1px, transparent 1px)`, backgroundSize: '32px 32px' }}></div>
+      
+      {/* Background Blobs - Refined */}
+      <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-[120px] opacity-15" style={{ backgroundColor: theme.accentColor }} />
+      <div className="absolute -bottom-32 -left-32 w-[30rem] h-[30rem] rounded-full blur-[150px] opacity-10" style={{ backgroundColor: theme.textPrimary }} />
 
-      <div className="relative z-10 w-full h-full">
+      <div className="relative z-10 w-full h-full p-8 md:p-12">
+        {onDelete && (
+           <button onClick={onDelete} className="absolute top-4 right-4 z-20 p-2 bg-red-500/80 hover:bg-red-600 rounded-full text-white">
+             <Trash2 size={16} />
+           </button>
+        )}
         {renderContent()}
       </div>
     </div>

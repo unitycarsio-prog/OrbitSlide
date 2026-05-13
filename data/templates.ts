@@ -145,7 +145,7 @@ export const getPreMadeSlideDeck = (topic: string): SlideData[] => {
           "Sustainability: Resources for the future",
           "Wellness: Holistic approach to health"
         ],
-        layout: SlideLayout.THREE_COLUMN,
+        layout: SlideLayout.TWO_COLUMN,
         imageKeyword: "zen stones"
       },
       {
